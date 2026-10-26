@@ -21,7 +21,7 @@
     turnbacks: L.layerGroup().addTo(map),
   };
   const LABEL_ZOOM = 14;
-  const state = { data: null, selectedLine: null, colorByLine: false, edgeLayers: [], tbMarkers: [] };
+  const state = { data: null, selectedLines: new Set(), colorByLine: false, edgeLayers: [], tbMarkers: [] };
   map.on("zoomend", () => {
     const permanent = map.getZoom() >= LABEL_ZOOM;
     state.tbMarkers.forEach(({ marker, name }) => {
@@ -37,9 +37,9 @@
 
   function edgeStyle(p) {
     const lines = p.lines || [];
-    const onSelected = state.selectedLine && lines.includes(state.selectedLine);
-    if (state.selectedLine) {
-      return { color: onSelected ? LINE_COLORS[state.selectedLine] || "#c8102e" : "#bbb", weight: onSelected ? 5 : 2, opacity: onSelected ? 1 : 0.6 };
+    if (state.selectedLines.size) {
+      const hit = lines.find((l) => state.selectedLines.has(l));
+      return { color: hit ? LINE_COLORS[hit] || "#c8102e" : "#bbb", weight: hit ? 5 : 2, opacity: hit ? 1 : 0.6 };
     }
     if (state.colorByLine && lines.length) {
       return { color: LINE_COLORS[lines[0]] || "#444", weight: 3, opacity: 0.9 };
@@ -47,6 +47,11 @@
     if (p.service === "yard" || p.service === "siding" || p.service === "spur") return { color: "#999", weight: 2, dashArray: "4 4", opacity: 0.8 };
     if (!lines.length) return { color: "#d08770", weight: 3, opacity: 0.9 }; // tor poza trasami linii (łącznik, przejazd)
     return { color: "#333", weight: 3, opacity: 0.9 };
+  }
+
+  function onLineFilterChange() {
+    restyleEdges();
+    if (typeof renderTrams === "function" && live.lastSnapshot) renderTrams(live.lastSnapshot);
   }
 
   function restyleEdges() {
@@ -85,15 +90,23 @@
     const box = $("line-buttons");
     box.innerHTML = "";
     const all = document.createElement("button"); all.textContent = "wszystkie"; all.className = "active";
-    all.onclick = () => { state.selectedLine = null; setActive(all); restyleEdges(); };
+    all.onclick = () => { state.selectedLines.clear(); refreshButtons(); onLineFilterChange(); };
     box.appendChild(all);
     sorted.forEach((l) => {
-      const b = document.createElement("button"); b.textContent = l;
+      const b = document.createElement("button"); b.textContent = l; b.dataset.line = l;
       b.style.borderColor = LINE_COLORS[l] || "#444";
-      b.onclick = () => { state.selectedLine = l; setActive(b); restyleEdges(); };
+      b.onclick = () => {
+        if (state.selectedLines.has(l)) state.selectedLines.delete(l); else state.selectedLines.add(l);
+        refreshButtons(); onLineFilterChange();
+      };
       box.appendChild(b);
     });
-    function setActive(btn) { [...box.children].forEach((c) => c.classList.toggle("active", c === btn)); }
+    function refreshButtons() {
+      [...box.children].forEach((c) => {
+        const l = c.dataset.line;
+        c.classList.toggle("active", l ? state.selectedLines.has(l) : state.selectedLines.size === 0);
+      });
+    }
     // raport
     $("report").textContent = reportText(data.report);
     layers.switches.eachLayer((l) => l.bringToFront && l.bringToFront());
@@ -168,8 +181,9 @@
 
   function renderTrams(snapshot) {
     live.lastSnapshot = snapshot;
+    const visible = state.selectedLines.size ? snapshot.trams.filter((t) => state.selectedLines.has(t.line)) : snapshot.trams;
     const seen = new Set();
-    snapshot.trams.forEach((t) => {
+    visible.forEach((t) => {
       seen.add(t.vehicle_code);
       let m = live.markers.get(t.vehicle_code);
       if (!m) {
@@ -190,12 +204,13 @@
     // lista w panelu
     const list = $("tram-list");
     list.innerHTML = "";
-    [...snapshot.trams].sort((a, b) => Number(a.line) - Number(b.line) || a.vehicle_code.localeCompare(b.vehicle_code)).forEach((t) => {
+    [...visible].sort((a, b) => Number(a.line) - Number(b.line) || a.vehicle_code.localeCompare(b.vehicle_code)).forEach((t) => {
       const row = document.createElement("div");
       row.innerHTML = `<b style="background:${delayColor(t)}">${t.line}</b><span>${t.vehicle_code}</span><span class="dir">→ ${t.headsign || "?"}</span><span class="delay">${fmtDelay(t.delay)}</span>`;
       row.onclick = () => { selectTram(t.vehicle_code); map.panTo([t.lat, t.lon]); live.markers.get(t.vehicle_code)?.openPopup(); };
       list.appendChild(row);
     });
+    $("tram-count").textContent = state.selectedLines.size ? `${visible.length} z ${snapshot.trams.length} (linie ${[...state.selectedLines].sort((a, b) => a - b).join(", ")})` : `${snapshot.trams.length}`;
   }
 
   function selectTram(code) {
