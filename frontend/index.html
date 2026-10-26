@@ -12,15 +12,36 @@
 <aside id="panel">
   <header>
     <h1>Tramdispatch Gdańsk</h1>
-    <div class="sub">Etap 1: graf torów z OSM. Narzędzie doradcze, nie sterujące.</div>
+    <div class="sub">Narzędzie doradcze, nie sterujące.</div>
+    <div id="status" class="status">łączenie z feedem ZTM…</div>
   </header>
+
+  <section>
+    <h2>Tramwaje na żywo</h2>
+    <label><input type="checkbox" id="l-trams" checked> Pokazuj tramwaje</label>
+    <div class="legend delays">
+      <span><i style="background:#2563eb"></i> przed czasem</span>
+      <span><i style="background:#16a34a"></i> do 1 min</span>
+      <span><i style="background:#ca8a04"></i> do 3 min</span>
+      <span><i style="background:#ea580c"></i> do 10 min</span>
+      <span><i style="background:#dc2626"></i> ponad 10 min</span>
+      <span><i style="background:#9ca3af"></i> brak danych / stara pozycja</span>
+    </div>
+    <div id="tram-list" class="tram-list"></div>
+  </section>
+
+  <section>
+    <h2>Historia</h2>
+    <label class="row"><input type="range" id="history" min="0" max="60" step="1" value="0"> <span id="history-label">teraz</span></label>
+    <div class="hint">Przesuń, żeby cofnąć mapę o N minut. Kliknięcie tramwaju rysuje jego ślad z ostatniej godziny.</div>
+  </section>
 
   <section>
     <h2>Warstwy</h2>
     <label><input type="checkbox" id="l-edges" checked> Tory</label>
     <label><input type="checkbox" id="l-switches" checked> Zwrotnice</label>
     <label><input type="checkbox" id="l-stops" checked> Przystanki</label>
-    <label><input type="checkbox" id="l-turnbacks" checked> Punkty zawracania</label>
+    <label><input type="checkbox" id="l-turnbacks"> Punkty zawracania</label>
     <label><input type="checkbox" id="l-lines"> Koloruj tory wg linii</label>
   </section>
 

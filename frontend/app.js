@@ -13,6 +13,8 @@
   const TB_COLORS = { loop: "#1a7f37", ring: "#b58900", stub: "#6f42c1", crossover: "#0969da", triangle: "#b58900" };
 
   const layers = {
+    trams: L.layerGroup().addTo(map),
+    trail: L.layerGroup().addTo(map),
     edges: L.layerGroup().addTo(map),
     switches: L.layerGroup().addTo(map),
     stops: L.layerGroup().addTo(map),
@@ -121,10 +123,130 @@
   }
 
   // przełączniki warstw
-  [["l-edges", "edges"], ["l-switches", "switches"], ["l-stops", "stops"], ["l-turnbacks", "turnbacks"]].forEach(([id, key]) => {
+  map.removeLayer(layers.turnbacks);
+  [["l-edges", "edges"], ["l-switches", "switches"], ["l-stops", "stops"], ["l-turnbacks", "turnbacks"], ["l-trams", "trams"]].forEach(([id, key]) => {
     $(id).addEventListener("change", (e) => (e.target.checked ? layers[key].addTo(map) : map.removeLayer(layers[key])));
   });
   $("l-lines").addEventListener("change", (e) => { state.colorByLine = e.target.checked; restyleEdges(); });
 
   fetch("/api/network").then((r) => r.json()).then(render).catch((err) => { $("report").textContent = "Błąd ładowania sieci: " + err; });
+
+  // ------------------------------------------------------------ tramwaje na żywo
+  const live = { markers: new Map(), selected: null, historyMinutes: 0, timer: null, lastSnapshot: null };
+
+  function delayColor(t) {
+    if (t.age_s > 120) return "#9ca3af";
+    const d = t.delay;
+    if (d === null || d === undefined) return "#9ca3af";
+    if (d < -60) return "#2563eb";
+    if (d <= 60) return "#16a34a";
+    if (d <= 180) return "#ca8a04";
+    if (d <= 600) return "#ea580c";
+    return "#dc2626";
+  }
+  function fmtDelay(d) {
+    if (d === null || d === undefined) return "–";
+    const m = Math.round(d / 60);
+    return (m > 0 ? "+" : "") + m + " min";
+  }
+  function fmtAge(s) { return s < 60 ? s + " s" : Math.round(s / 60) + " min"; }
+
+  function tramIcon(t) {
+    const stale = t.age_s > 120;
+    const dir = typeof t.direction === "number" ? t.direction : 0;
+    const html = `<div class="tram-icon${stale ? " stale" : ""}${live.selected === t.vehicle_code ? " selected" : ""}" style="background:${delayColor(t)}">${t.line}<span class="arrow" style="transform:rotate(${dir}deg)"></span></div>`;
+    return L.divIcon({ html, className: "", iconSize: [24, 24], iconAnchor: [12, 12] });
+  }
+
+  function popupHtml(t) {
+    return `<b>Linia ${t.line}</b> → ${t.headsign || "?"}<br>` +
+      `Nr taborowy <b>${t.vehicle_code}</b> · ${t.type || "typ nieznany"}` +
+      (t.bidirectional === true ? " · dwukierunkowy" : t.bidirectional === false ? " · jednokierunkowy" : "") + `<br>` +
+      `Opóźnienie: <b>${fmtDelay(t.delay)}</b> · prędkość ${t.speed ?? "?"} km/h<br>` +
+      `Pozycja sprzed ${fmtAge(t.age_s)}` + (t.service ? ` · brygada ${t.service}` : "");
+  }
+
+  function renderTrams(snapshot) {
+    live.lastSnapshot = snapshot;
+    const seen = new Set();
+    snapshot.trams.forEach((t) => {
+      seen.add(t.vehicle_code);
+      let m = live.markers.get(t.vehicle_code);
+      if (!m) {
+        m = L.marker([t.lat, t.lon], { icon: tramIcon(t), zIndexOffset: 1000 }).addTo(layers.trams);
+        m.bindPopup("", { offset: [0, -8] });
+        m.on("click", () => selectTram(t.vehicle_code));
+        live.markers.set(t.vehicle_code, m);
+      } else {
+        m.setLatLng([t.lat, t.lon]);
+        m.setIcon(tramIcon(t));
+      }
+      m.setPopupContent(popupHtml(t));
+      m._tram = t;
+    });
+    [...live.markers.keys()].forEach((code) => {
+      if (!seen.has(code)) { layers.trams.removeLayer(live.markers.get(code)); live.markers.delete(code); }
+    });
+    // lista w panelu
+    const list = $("tram-list");
+    list.innerHTML = "";
+    [...snapshot.trams].sort((a, b) => Number(a.line) - Number(b.line) || a.vehicle_code.localeCompare(b.vehicle_code)).forEach((t) => {
+      const row = document.createElement("div");
+      row.innerHTML = `<b style="background:${delayColor(t)}">${t.line}</b><span>${t.vehicle_code}</span><span class="dir">→ ${t.headsign || "?"}</span><span class="delay">${fmtDelay(t.delay)}</span>`;
+      row.onclick = () => { selectTram(t.vehicle_code); map.panTo([t.lat, t.lon]); live.markers.get(t.vehicle_code)?.openPopup(); };
+      list.appendChild(row);
+    });
+  }
+
+  function selectTram(code) {
+    live.selected = code;
+    live.markers.forEach((m) => m.setIcon(tramIcon(m._tram)));
+    layers.trail.clearLayers();
+    fetch(`/api/history?vehicle=${encodeURIComponent(code)}&minutes=60`).then((r) => r.json()).then((h) => {
+      if (live.selected !== code || !h.trail.length) return;
+      const pts = h.trail.map((p) => [p.lat, p.lon]);
+      L.polyline(pts, { color: "#1d1d1b", weight: 3, opacity: 0.7, dashArray: "2 6" }).addTo(layers.trail);
+      L.circleMarker(pts[0], { radius: 4, color: "#1d1d1b", fillColor: "#fff", fillOpacity: 1 }).bindTooltip("start śladu, " + new Date(h.trail[0].ts * 1000).toLocaleTimeString("pl-PL")).addTo(layers.trail);
+    });
+  }
+
+  function setStatus(health) {
+    const el = $("status");
+    const lv = health.live || {};
+    if (lv.feed_age_s === null || lv.feed_age_s === undefined) {
+      el.className = "status bad"; el.textContent = "Feed ZTM: brak danych" + (lv.last_error ? " (" + lv.last_error + ")" : "");
+    } else if (lv.feed_age_s > 90) {
+      el.className = "status bad"; el.textContent = `Feed ZTM: ostatnie dane ${fmtAge(lv.feed_age_s)} temu`;
+    } else {
+      el.className = "status ok"; el.textContent = `Feed ZTM OK · ${lv.trams} tramwajów · odświeżono ${fmtAge(lv.feed_age_s)} temu`;
+    }
+  }
+
+  function tick() {
+    if (live.historyMinutes > 0) return;
+    fetch("/api/live").then((r) => r.json()).then(renderTrams).catch(() => {});
+    fetch("/api/health").then((r) => r.json()).then(setStatus).catch(() => {});
+  }
+  tick();
+  live.timer = setInterval(tick, 5000);
+
+  // ------------------------------------------------------------ historia
+  const slider = $("history");
+  let sliderDebounce = null;
+  slider.addEventListener("input", () => {
+    const min = Number(slider.value);
+    live.historyMinutes = min;
+    $("history-label").textContent = min === 0 ? "teraz" : `−${min} min`;
+    clearTimeout(sliderDebounce);
+    sliderDebounce = setTimeout(() => {
+      if (min === 0) { tick(); return; }
+      const at = Math.floor(Date.now() / 1000) - min * 60;
+      fetch(`/api/history?at=${at}`).then((r) => r.json()).then((snap) => {
+        snap.trams.forEach((t) => { t.age_s = 0; });
+        renderTrams(snap);
+        $("status").className = "status";
+        $("status").textContent = `Historia: ${new Date(at * 1000).toLocaleTimeString("pl-PL")} · ${snap.trams.length} tramwajów`;
+      });
+    }, 150);
+  });
 })();

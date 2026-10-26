@@ -8,7 +8,13 @@ Działa wyłącznie na publicznych danych: OpenStreetMap i otwarte dane ZTM Gda�
 
 ## Stan
 
-Etap 1 z [PLAN.md](PLAN.md) gotowy: dane OSM i GTFS pobrane, graf torów ze zwrotnicami i punktami zawracania, mapa do weryfikacji przez dyspozytora. Raport jakości grafu w [data/graph_report.md](data/graph_report.md).
+Etapy 1 i 2 z [PLAN.md](PLAN.md) gotowe:
+
+- graf torów ze zwrotnicami i punktami zawracania, mapa do weryfikacji przez dyspozytora, raport jakości w [data/graph_report.md](data/graph_report.md);
+- linie i ich warianty tras z relacji OSM, tabela taboru (`data/fleet.json`);
+- tramwaje na żywo z otwartego feedu ZTM (co 15 s), kolor wg opóźnienia, popup z numerem taborowym i typem składu, ślad z ostatniej godziny po kliknięciu, suwak cofający mapę do 60 minut wstecz. Historia pozycji w lokalnej bazie SQLite (`data/tramdispatch.db`, 24 h retencji).
+
+Następny etap: zgłaszanie awarii, objazdy i zawracanie (sekcja 9 planu, etap 3).
 
 ## Uruchomienie
 
@@ -16,7 +22,9 @@ Etap 1 z [PLAN.md](PLAN.md) gotowy: dane OSM i GTFS pobrane, graf torów ze zwro
 ./run.sh
 ```
 
-Serwer startuje na http://127.0.0.1:8766 i otwiera przeglądarkę. Wymaga Pythona 3.12+ i dostępu do internetu tylko dla kafelków mapy.
+Serwer startuje na http://127.0.0.1:8766 i otwiera przeglądarkę. Wymaga Pythona 3.12+. Internet jest potrzebny do kafelków mapy i do feedu pozycji ZTM; bez niego działa sama mapa torów.
+
+Dane: © OpenStreetMap contributors (ODbL), otwarte dane ZTM Gdańsk (ckan.multimediagdansk.pl).
 
 Odświeżenie danych (rzadko, dane są w repo):
 

@@ -33,3 +33,23 @@ pre { white-space: pre-wrap; word-break: break-word; font-size: 11.5px; backgrou
   #map { flex: 0 0 55%; height: 55%; }
   #panel { flex: 1 1 auto; width: auto; height: auto; border-left: 0; border-top: 1px solid var(--line); }
 }
+
+.status { margin-top: 6px; font-size: 12px; padding: 3px 8px; border-radius: 4px; background: #eef; color: #335; }
+.status.ok { background: #e6f6ea; color: #14532d; }
+.status.bad { background: #fde8e8; color: #7f1d1d; }
+.legend.delays span { display: inline-block; margin-right: 10px; }
+.legend.delays i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+.tram-list { margin-top: 8px; max-height: 220px; overflow: auto; font-size: 12px; border: 1px solid var(--line); border-radius: 6px; }
+.tram-list div { display: grid; grid-template-columns: 34px 46px 1fr 48px; gap: 6px; padding: 3px 8px; border-bottom: 1px solid #eee; cursor: pointer; align-items: center; }
+.tram-list div:hover { background: #f3f3f0; }
+.tram-list b { display: inline-block; min-width: 26px; text-align: center; color: #fff; border-radius: 4px; padding: 1px 4px; }
+.tram-list .dir { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tram-list .delay { text-align: right; font-variant-numeric: tabular-nums; }
+.row { display: flex; align-items: center; gap: 8px; }
+.row input[type=range] { flex: 1; }
+.hint { color: var(--muted); font-size: 11.5px; margin-top: 4px; }
+.tram-icon { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px #0005; color: #fff; font-weight: 700; font-size: 11px; position: relative; }
+.tram-icon.stale { opacity: .55; }
+.tram-icon .arrow { position: absolute; top: -9px; left: 50%; width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 7px solid #1d1d1b; transform-origin: 50% 21px; margin-left: -4px; }
+.tram-icon.selected { box-shadow: 0 0 0 3px #1d1d1b; }
+.leaflet-popup-content { font-size: 12.5px; line-height: 1.35; }
