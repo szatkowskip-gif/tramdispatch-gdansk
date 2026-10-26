@@ -4,6 +4,8 @@
 """
 from __future__ import annotations
 
+import csv
+import io
 import threading
 import time
 import webbrowser
@@ -12,7 +14,7 @@ from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 from pydantic import BaseModel
@@ -21,6 +23,7 @@ from backend.graph import ROOT, load_config, load_network
 from backend.incidents import IncidentAnalyzer
 from backend.lines import Fleet, Lines
 from backend.live import LivePoller
+from backend.messages import render_all
 from backend.store import Store
 
 _state: dict = {}
@@ -145,6 +148,43 @@ def api_incident_create(body: IncidentIn):
 @app.get("/api/incidents")
 def api_incident_list(status: str | None = None):
     return {"incidents": _state["store"].list_incidents(status)}
+
+
+@app.get("/api/incidents/export.csv")
+def api_incident_export():
+    buf = io.StringIO()
+    w = csv.writer(buf, delimiter=";")
+    w.writerow(["id", "utworzono", "zakończono", "status", "miejsce", "przyczyna", "oba_tory", "linie", "strategie", "przystanki_bez_obslugi", "przewidywany_czas", "uwagi"])
+    for inc in _state["store"].list_incidents():
+        an = inc.get("analysis", {})
+        dec = (inc.get("decision") or {}).get("lines", {})
+        fmt = lambda ts: time.strftime("%Y-%m-%d %H:%M", time.localtime(ts)) if ts else ""
+        w.writerow([inc["id"], fmt(inc["created_at"]), fmt(inc.get("resolved_at")), inc["status"], inc.get("location_text", ""), inc.get("cause", ""),
+                    "tak" if inc.get("both_directions") else "nie", ", ".join(an.get("lines_hit", [])),
+                    ", ".join(f"{k}:{v}" for k, v in sorted(dec.items(), key=lambda x: int(x[0]))),
+                    ", ".join(an.get("unserved_stops_all", [])), inc.get("expected_until") or "", inc.get("note", "")])
+    return PlainTextResponse("\ufeff" + buf.getvalue(), media_type="text/csv; charset=utf-8",
+                             headers={"Content-Disposition": "attachment; filename=dziennik_awarii.csv"})
+
+
+class MessagesIn(BaseModel):
+    messages: dict[str, str] | None = None  # ręcznie poprawione teksty do zapisania
+
+
+@app.post("/api/incidents/{inc_id}/messages")
+def api_incident_messages(inc_id: str, body: MessagesIn | None = None):
+    """Bez body: renderuje komunikaty z szablonów i zapisuje. Z body.messages: zapisuje teksty poprawione ręcznie."""
+    inc = _state["store"].get_incident(inc_id)
+    if not inc:
+        raise HTTPException(404, "nie ma takiej awarii")
+    if body and body.messages:
+        inc["messages"] = {**inc.get("messages", {}), **body.messages}
+        inc["messages_edited"] = True
+    else:
+        inc["messages"] = render_all(inc)
+        inc["messages_edited"] = False
+    _state["store"].save_incident(inc)
+    return {"id": inc_id, "messages": inc["messages"], "edited": inc["messages_edited"]}
 
 
 @app.get("/api/incidents/{inc_id}")

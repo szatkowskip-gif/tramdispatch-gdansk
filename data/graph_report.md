@@ -10,6 +10,6 @@ Inne krótkie pierścienie/trójkąty do weryfikacji: 5: Węzeł Kliniczna, Dwor
 Przystanki końcowe z relacji BEZ wykrytej pętli (dopisać w overrides): brzeźno dom zdrojowy, brętowo pkm, głęboka, lawendowe wzgórze, lawendowe wzgóze, nowy port oliwska, siedlce, wilka-krzyżanowskiego, władysława iv
 Izolowane odcinki (osobne komponenty): [1023591869]
 Końcówki bez pętli (tylko tabor dwukierunkowy): 8: Brzeźno Dom Zdrojowy, Brętowo PKM, Głęboka, Lawendowe Wzgórze, Nowy Port Oliwska, Siedlce, Wilka-Krzyżanowskiego, Władysława IV
-Przejazdy międzytorowe: 23, trójkąty (z overrides): 0
+Przejazdy międzytorowe: 26, trójkąty (z overrides): 0
 Overrides: {}
 ```

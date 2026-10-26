@@ -1,0 +1,17 @@
+UTRUDNIENIA W RUCHU TRAMWAJÓW
+{{ location }} – {{ cause_pl }}{% if started %}, od godz. {{ started }}{% endif %}.
+{% for l in lines %}
+Linia {{ l.ref }} {{ l.pl }}.
+{% endfor %}
+{% if unserved %}
+Przystanki nieobsługiwane: {{ unserved|join(', ') }}.
+{% endif %}
+{% if replacement_bus %}
+Uruchomiono autobusową komunikację zastępczą {{ replacement_bus }}.
+{% endif %}
+{% if expected %}
+Przewidywany czas utrudnień: {{ expected }}.
+{% else %}
+Utrudnienia potrwają do odwołania.
+{% endif %}
+Za utrudnienia przepraszamy.

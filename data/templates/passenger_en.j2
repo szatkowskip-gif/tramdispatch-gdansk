@@ -1,0 +1,17 @@
+TRAM SERVICE DISRUPTION
+{{ location }} – {{ cause_en }}{% if started %}, since {{ started }}{% endif %}.
+{% for l in lines %}
+Line {{ l.ref }} {{ l.en }}.
+{% endfor %}
+{% if unserved %}
+Stops not served: {{ unserved|join(', ') }}.
+{% endif %}
+{% if replacement_bus %}
+Replacement bus service {{ replacement_bus }} is in operation.
+{% endif %}
+{% if expected %}
+Expected duration: {{ expected }}.
+{% else %}
+Until further notice.
+{% endif %}
+We apologise for the inconvenience.

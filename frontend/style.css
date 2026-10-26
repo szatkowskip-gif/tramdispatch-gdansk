@@ -84,3 +84,15 @@ button.primary { background: var(--accent); color: #fff; border: 0; }
 .tb-big.bi { border-color: #0969da; }
 .stop-x { color: #dc2626; font-weight: 900; font-size: 16px; line-height: 16px; text-align: center; text-shadow: 0 0 2px #fff; }
 body.reporting #map { cursor: crosshair; }
+
+.radios label { display: block; margin: 2px 0; font-size: 12.5px; }
+.card .strategy { margin: 6px 0 2px; display: flex; gap: 8px; flex-wrap: wrap; font-size: 12px; }
+.card .strategy label { display: inline-flex; align-items: center; gap: 3px; border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; cursor: pointer; }
+.card .strategy label.on { background: #1d1d1b; color: #fff; border-color: #1d1d1b; }
+.card .strategy label.dis { opacity: .45; cursor: default; }
+.shuttle { background: #eef4ff; border: 1px solid #c7d7f5; border-radius: 4px; padding: 4px 6px; margin-top: 4px; }
+.shuttle.no { background: #f6f6f4; color: var(--muted); }
+#msg-fields label { display: block; font-size: 12px; margin-top: 8px; font-weight: 600; }
+#msg-fields textarea { width: 100%; min-height: 110px; font: 12px/1.35 ui-monospace, Menlo, monospace; border: 1px solid var(--line); border-radius: 4px; padding: 6px; margin-top: 2px; resize: vertical; }
+#msg-fields .copy { float: right; font-weight: 400; font-size: 11px; padding: 1px 8px; }
+#msg-fields .copied { color: #14532d; }

@@ -1,5 +1,12 @@
 {
-  "_comment": "Ręczne poprawki grafu torów. Każdy wpis ma pole reason od dyspozytora.",
+  "_comment": [
+    "Ręczne poprawki grafu torów. Każdy wpis ma pole reason od dyspozytora. Po edycji: POST /api/network/reload albo restart.",
+    "add_edges: [{\"from\": <osm node>, \"to\": <osm node>, \"both\": true, \"service\": \"crossover\", \"reason\": \"...\"}]",
+    "remove_edges: [{\"id\": \"<way>:<idx>\", \"reason\": \"...\"}]",
+    "turnbacks: [{\"kind\": \"loop|triangle|crossover|stub\", \"nodes\": [<osm node>, ...], \"name\": \"...\", \"reason\": \"...\"}]",
+    "turnbacks z \"remove\": true usuwa wykryty punkt zawracania zawierający podane węzły (np. pierścień, który nie służy do zawracania).",
+    "Przejazd międzytorowy do wahadła: dodaj add_edges (both: true, service: crossover) między zwrotnicami obu torów ORAZ turnbacks kind crossover z tymi dwoma węzłami."
+  ],
   "add_edges": [],
   "remove_edges": [],
   "turnbacks": [],

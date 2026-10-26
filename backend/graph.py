@@ -230,9 +230,12 @@ class TramNetwork:
             if u in self.node_info and v in self.node_info:
                 a, b = self.node_info[u], self.node_info[v]
                 geom = [(a["lat"], a["lon"]), (b["lat"], b["lon"])]
-                self.G.add_edge(u, v, id=e.get("id", f"override:{u}-{v}"), geometry=geom, way=None,
-                                length_m=round(polyline_length_m(geom), 1), lines=[], service="override", name=e.get("reason"))
+                attrs = dict(way=None, length_m=round(polyline_length_m(geom), 1), lines=[], service=e.get("service", "override"), name=e.get("reason"))
+                self.G.add_edge(u, v, id=e.get("id", f"override:{u}-{v}"), geometry=geom, **attrs)
                 applied["add_edges"] += 1
+                if e.get("both"):
+                    self.G.add_edge(v, u, id=e.get("id", f"override:{u}-{v}") + ":r", geometry=list(reversed(geom)), **attrs)
+                    applied["add_edges"] += 1
         self.report.overrides_applied = dict(applied)
 
     def _attach_node_attrs(self) -> None:
@@ -248,8 +251,11 @@ class TramNetwork:
         # Pętle. Szukamy krótkich cykli, ale bez "cykli" złożonych z odcinka i jego
         # odwrotności (odcinki bez tagu oneway dają obie krawędzie). Dwa przebiegi:
         # tylko krawędzie "w przód" i tylko krawędzie "w tył" nietagowanych odcinków.
-        fwd = nx.DiGraph(((u, v, d) for u, v, d in self.G.edges(data=True) if not d["id"].endswith(":r")))
-        bwd = nx.DiGraph(((u, v, d) for u, v, d in self.G.edges(data=True) if d["id"].endswith(":r") or self.ways.get(d.get("way"), {}).get("tags", {}).get("oneway") == "yes"))
+        # pętla nie prowadzi przez otagowany przejazd międzytorowy (service=crossover): bez nich
+        # cykl "tor A -> przejazd -> tor B -> przejazd" nie udaje pętli
+        base = [(u, v, d) for u, v, d in self.G.edges(data=True) if d.get("service") != "crossover"]
+        fwd = nx.DiGraph(((u, v, d) for u, v, d in base if not d["id"].endswith(":r")))
+        bwd = nx.DiGraph(((u, v, d) for u, v, d in base if d["id"].endswith(":r") or self.ways.get(d.get("way"), {}).get("tags", {}).get("oneway") == "yes"))
         found: list[set[int]] = []
         for H in (fwd, bwd):
             for u, v, d in H.edges(data=True):
@@ -324,14 +330,18 @@ class TramNetwork:
 
         # Trójkąty i inne punkty z overrides
         for t in self.overrides.get("turnbacks", []):
-            n = t["node"]
-            if n not in self.node_info:
+            nodes = [n for n in (t.get("nodes") or [t.get("node")]) if n in self.node_info]
+            if not nodes:
                 continue
-            info = self.node_info[n]
+            if t.get("remove"):
+                self.turnbacks = [x for x in self.turnbacks if not (set(x.nodes) & set(nodes))]
+                continue
+            n = nodes[0]
+            c = self._centroid(set(nodes))
             self.turnbacks.append(Turnback(id=f"{t['kind']}:{n}", kind=t["kind"], name=t.get("name", t["kind"]), node=n,
-                                           lat=info["lat"], lon=info["lon"], nodes=[n],
+                                           lat=c[0], lon=c[1], nodes=nodes,
                                            for_bidirectional_only=t.get("for_bidirectional_only", t["kind"] == "crossover"),
-                                           source="override"))
+                                           source="override", terminus=t.get("terminus", t["kind"] == "loop")))
 
     def terminus_names(self) -> set[str]:
         """Znormalizowane nazwy przystanków końcowych ze wszystkich relacji linii."""

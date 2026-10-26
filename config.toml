@@ -18,6 +18,13 @@ crossover_max_length_m = 80
 loop_max_length_m = 1600
 position_match_radius_m = 60
 
+[shuttle]
+# ruch wahadłowy po jednym torze
+speed_kmh = 25            # prędkość na odcinku jednotorowym
+margin_s = 40             # czas na zmianę kierunku ruchu na mijance (zwrotnice, łączność)
+trips_per_line_per_h = 6  # szacunek szczytowy do oceny przepustowości (brak stop_times w repo)
+max_single_track_m = 2500 # powyżej tej długości program nie proponuje wahadła
+
 [server]
 host = "127.0.0.1"
 port = 8766

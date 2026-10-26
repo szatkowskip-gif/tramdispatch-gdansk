@@ -39,7 +39,7 @@ def synthetic():
     nodes = [
         _node(1, lat0, lon0, "tram_stop", "Zachód 01"), _node(2, lat0, lon0 + d, "switch"), _node(3, lat0, lon0 + 2 * d, "switch"),
         _node(4, lat0, lon0 + 3 * d, "switch"), _node(5, lat0, lon0 + 4 * d, "tram_stop", "Wschód 01"),
-        _node(6, lat0 + 0.00015, lon0 + 3 * d), _node(7, lat0 + 0.00015, lon0 + 2 * d, "switch"), _node(8, lat0 + 0.00015, lon0 + d),
+        _node(6, lat0 + 0.00015, lon0 + 3 * d), _node(7, lat0 + 0.00015, lon0 + 2 * d, "switch"), _node(8, lat0 + 0.00015, lon0 + d, "switch"),
         _node(9, lat0 + 0.002, lon0 + 2 * d, "tram_stop", "Objazdowa"),
         _node(10, lat0 - 0.001, lon0, "switch"), _node(11, lat0 - 0.001, lon0 + 4 * d, "switch"),
         _node(14, lat0 - 0.001, lon0 + 0.001), _node(15, lat0 - 0.001, lon0 + 4 * d - 0.001),
@@ -51,6 +51,7 @@ def synthetic():
         _way(105, [5, 6], [c[5], c[6]]), _way(106, [6, 7], [c[6], c[7]]), _way(107, [7, 8], [c[7], c[8]]), _way(108, [8, 1], [c[8], c[1]]),
         _way(109, [2, 9], [c[2], c[9]]), _way(110, [9, 4], [c[9], c[4]]),  # objazd
         _way(111, [3, 7], [c[3], c[7]], oneway="no", service="crossover"),  # przejazd
+        _way(116, [2, 8], [c[2], c[8]], oneway="no", service="crossover"),  # drugi przejazd (dla wahadła)
         _way(112, [1, 10], [c[1], c[10]]), _way(113, [10, 14, 1], [c[10], c[14], c[1]]),  # pętla zachód (cykl 1-10-14-1)
         _way(114, [5, 11], [c[5], c[11]]), _way(115, [11, 15, 5], [c[11], c[15], c[5]]),  # pętla wschód
     ]
@@ -128,6 +129,31 @@ def test_vehicle_situations(syn):
     assert sit["A"] == "approaching"
     assert sit["B"] == "beyond", "za blokadą, ale ma pętlę wschód"
     assert sit["C"] == "unaffected", "drugi tor nie jest zablokowany"
+
+
+def test_shuttle_between_two_crossovers(syn):
+    net, lines, an = syn
+    # blokada toru 2->12->3 (między przejazdami 2-8 i 3-7): wahadło po torze 8->7 w przeciwną stronę
+    eid = net.G.edges[2, 12]["id"]
+    res = an.analyze([eid], both_directions=False)
+    l = next(r for r in res["affected_lines"] if r["variant_id"] == 9001)
+    sh = l["shuttle"]
+    assert sh["possible"], sh
+    assert sh["crossover_before"]["node"] == 2 and sh["crossover_after"]["node"] == 3
+    assert "Środek A" in sh["stops_opposite_platform"]
+    assert sh["capacity_per_h_per_dir"] > 0
+    # przy obu torach wahadła nie ma
+    res2 = an.analyze([eid], both_directions=True)
+    assert not next(r for r in res2["affected_lines"] if r["variant_id"] == 9001)["shuttle"]["possible"]
+
+
+def test_override_crossover_pair_adds_edges():
+    cfg = load_config()
+    ov = {"add_edges": [{"from": 12, "to": 8, "both": True, "service": "crossover", "reason": "test"}],
+          "turnbacks": [{"kind": "crossover", "nodes": [12, 8], "name": "przejazd testowy", "reason": "test"}]}
+    net = TramNetwork(synthetic(), ov, cfg)
+    assert net.G.has_edge(12, 8) and net.G.has_edge(8, 12)
+    assert any(t.source == "override" and t.kind == "crossover" and set(t.nodes) == {12, 8} for t in net.turnbacks)
 
 
 def test_point_to_polyline():

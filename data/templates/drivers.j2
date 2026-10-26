@@ -1,0 +1,13 @@
+KOMUNIKAT SŁUŻBOWY {{ now }}
+Blokada: {{ location }} ({{ cause_raw }}), {% if both_directions %}oba tory{% else %}jeden tor, drugi przejezdny{% endif %}, od {{ started }}{% if expected %}, przewidywany czas: {{ expected }}{% endif %}.
+{% for l in lines %}
+L{{ l.ref }} [{{ strategy_label[l.strategy] }}]: {% if l.strategy == 'detour' %}objazd{% if l.via %} przez {{ l.via|join(' – ') }}{% endif %}{% if l.skipped %}, bez obsługi: {{ l.skipped|join(', ') }}{% endif %}{% elif l.strategy == 'shuttle' %}ruch wahadłowy {{ l.shuttle.crossover_before.name }} – {{ l.shuttle.crossover_after.name }} ({{ l.shuttle.single_track_m }} m jednotorowo, przejazd ok. {{ (l.shuttle.pass_time_s / 60)|round(1) }} min). Wjazd na odcinek wyłącznie na polecenie dyspozytora. Przystanki po stronie przeciwnej: {{ l.shuttle.stops_opposite_platform|join(', ') or 'brak' }}{% elif l.strategy == 'suspended' %}linia zawieszona do odwołania{% else %}zawracanie {{ l.turnback_a or '–' }} / {{ l.turnback_b or '–' }}{% if l.unserved %}; bez obsługi: {{ l.unserved|join(', ') }}{% endif %}{% endif %}.
+{% endfor %}
+Składy jednokierunkowe zawracają wyłącznie na pętlach i trójkątach. Składy dwukierunkowe mogą zawracać na przejazdach międzytorowych wskazanych przez dyspozytora.
+{% if vehicles %}
+Składy w rejonie blokady: {% for v in vehicles %}{{ v.line }}/{{ v.vehicle_code }}{% if not loop.last %}, {% endif %}{% endfor %}.
+{% endif %}
+{% if note %}
+Uwagi: {{ note }}
+{% endif %}
+Obowiązuje do odwołania.

@@ -44,7 +44,10 @@
     </div>
     <div id="inc-form" hidden>
       <div class="hint" id="inc-count">Zaznaczono 0 odcinków. Klikaj tory na mapie.</div>
-      <label><input type="checkbox" id="inc-both" checked> Oba kierunki (zablokuj też tor równoległy)</label>
+      <div class="radios">
+        <label><input type="radio" name="inc-mode" value="both" checked> Oba tory zablokowane</label>
+        <label><input type="radio" name="inc-mode" value="one"> Tylko zaznaczony tor, drugi przejezdny (program sprawdzi wahadło)</label>
+      </div>
       <label>Miejsce <input type="text" id="inc-location" placeholder="np. al. Grunwaldzka przy Galerii Bałtyckiej"></label>
       <label>Przyczyna
         <select id="inc-cause">
@@ -68,14 +71,19 @@
       <div class="active-box">
         <div><b id="inc-active-title"></b></div>
         <div id="inc-active-meta" class="hint"></div>
-        <div class="btns"><button id="inc-resolve">Zakończ awarię</button><button id="inc-close">Ukryj</button></div>
+        <div class="btns"><button id="inc-messages" class="primary">Komunikaty</button><button id="inc-resolve">Zakończ awarię</button><button id="inc-close">Ukryj</button></div>
+      </div>
+      <div id="msg-box" hidden>
+        <div class="hint">Teksty z szablonów. Możesz je poprawić i zapisać; „Generuj ponownie” nadpisuje poprawki.</div>
+        <div id="msg-fields"></div>
+        <div class="btns"><button id="msg-regen">Generuj ponownie</button><button id="msg-save" class="primary">Zapisz teksty</button></div>
       </div>
     </div>
     <div id="inc-result" hidden></div>
   </section>
 
   <section>
-    <h2>Dziennik awarii</h2>
+    <h2>Dziennik awarii <a class="count" href="/api/incidents/export.csv" download>eksport CSV</a></h2>
     <div id="inc-log" class="log">brak</div>
   </section>
 

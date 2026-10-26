@@ -66,6 +66,7 @@ class EdgeRef:
 class IncidentAnalyzer:
     def __init__(self, net: TramNetwork, lines: Lines, cfg: dict[str, Any]):
         self.net, self.lines, self.cfg = net, lines, cfg["routing"]
+        self.shuttle_cfg = cfg.get("shuttle", {"speed_kmh": 25, "margin_s": 40, "trips_per_line_per_h": 6, "max_single_track_m": 2500})
         self.edges: dict[str, EdgeRef] = {}
         for u, v, d in net.G.edges(data=True):
             self.edges[d["id"]] = EdgeRef(d["id"], u, v, d["length_m"], d["geometry"], d["lines"])
@@ -119,6 +120,14 @@ class IncidentAnalyzer:
                 if res:
                     affected.append(res)
                     variant_results[var.id] = res
+
+        if not both_directions:
+            lines_through = len({r["ref"] for r in affected})
+            for res in affected:
+                res["shuttle"] = self._shuttle(res, blocked_set, H, lines_through)
+        else:
+            for res in affected:
+                res["shuttle"] = {"possible": False, "reason": "zablokowane oba tory"}
 
         vehicles = self._analyze_vehicles(live_trams or [], blocked_set, variant_results)
         unserved_all = sorted({s for r in affected for s in r["unserved_stops"]})
@@ -204,16 +213,86 @@ class IncidentAnalyzer:
             "unserved_stops": unserved,
         }
 
+    def _shuttle(self, res: dict[str, Any], blocked: set[str], H: nx.DiGraph, lines_through: int) -> dict[str, Any]:
+        """Ruch wahadłowy: przez zablokowany odcinek tramwaje obu kierunków jadą na zmianę
+        sprawnym torem równoległym. Potrzebne: przejazd międzytorowy przed i za blokadą
+        oraz droga po grafie (bez zablokowanych krawędzi) między nimi.
+        """
+        var = self._variant(res["variant_id"])
+        a, b = res["block_index"]
+        before = [c for c in res["side_a"]["candidates"] if c["kind"] == "crossover"]
+        after = [c for c in res["side_b"]["candidates"] if c["kind"] == "crossover"]
+        if not before or not after:
+            return {"possible": False, "reason": "brak przejazdu międzytorowego " + ("przed blokadą" if not before else "za blokadą")}
+        cfg = self.shuttle_cfg
+        too_long: int | None = None
+        for cb in before:
+            for ca in after:
+                # tor równoległy do odcinka między przejazdami, z dołożonym ruchem "pod prąd"
+                segment = var.edges[min(cb["edge_index"] + 1, a) : max(ca["edge_index"] + 1, b + 1)]
+                parallel = [e for e in self.parallel_edges(segment) if e not in blocked]
+                Hs = H.copy()
+                for pe in parallel:
+                    er = self.edges[pe]
+                    if not Hs.has_edge(er.v, er.u):
+                        Hs.add_edge(er.v, er.u, id=pe + ":shuttle", length_m=er.length_m, geometry=list(reversed(er.geometry)), lines=er.lines, service="shuttle")
+                try:
+                    length, path = nx.single_source_dijkstra(Hs, cb["node"], ca["node"], weight="length_m")
+                except (nx.NetworkXNoPath, nx.NodeNotFound):
+                    continue
+                H_path = Hs
+                direct = sum(self.edges[e].length_m for e in segment)
+                if length > direct * 1.5 + 300:
+                    continue  # droga nie idzie torem równoległym, tylko gdzieś naokoło
+                if length > cfg["max_single_track_m"]:
+                    too_long = round(length) if too_long is None else min(too_long, round(length))
+                    continue
+                path_edges = [H_path.edges[x, y]["id"] for x, y in zip(path, path[1:])]
+                if not any(e.endswith(":shuttle") for e in path_edges):
+                    continue  # droga nie korzysta z toru równoległego pod prąd, to nie jest wahadło
+                t_pass = length / (cfg["speed_kmh"] / 3.6) + cfg["margin_s"]
+                capacity = int(3600 / (2 * t_pass))
+                demand = lines_through * cfg["trips_per_line_per_h"]
+                stops = [ _strip(s["name"]) for s in var.stops if cb["edge_index"] < self._stop_index(var, s["node"]) <= ca["edge_index"] ]
+                return {
+                    "possible": True,
+                    "crossover_before": {"name": cb["name"], "node": cb["node"], "distance_to_block_m": cb["distance_to_block_m"], "lat": cb["lat"], "lon": cb["lon"]},
+                    "crossover_after": {"name": ca["name"], "node": ca["node"], "distance_to_block_m": ca["distance_to_block_m"], "lat": ca["lat"], "lon": ca["lon"]},
+                    "single_track_m": round(length),
+                    "pass_time_s": round(t_pass),
+                    "capacity_per_h_per_dir": capacity,
+                    "demand_per_h_per_dir": demand,
+                    "sufficient": capacity >= demand,
+                    "stops_opposite_platform": _uniq(stops),
+                    "path_edges": path_edges,
+                    "note": "Tramwaje jadące pod prąd zatrzymują się na peronie przeciwnego kierunku. Ruch po jednym torze prowadzi dyspozytor (radio) lub pracownik na miejscu.",
+                }
+        if too_long is not None:
+            return {"possible": False, "reason": f"najbliższe przejazdy za daleko od siebie: odcinek jednotorowy {too_long} m"}
+        return {"possible": False, "reason": "brak przejezdnej drogi torem równoległym między przejazdami (kierunek przejazdów?)"}
+
+    def _stop_index(self, var: Variant, node: int) -> int:
+        for i, e in enumerate(var.edges):
+            if self.edges[e].u == node:
+                return i
+            if self.edges[e].v == node:
+                return i + 1
+        return -1
+
     def _turnbacks_side(self, var: Variant, block_idx: int, forward: bool) -> dict[str, Any]:
         """Punkty zawracania przed blokadą (forward=False, patrząc od początku trasy) lub za nią."""
         radius = self.cfg["turnback_search_radius_m"]
         found: dict[str, dict[str, Any]] = {}
         dist = 0.0
+        # węzeł graniczny blokady (odległość 0), potem kolejne krawędzie trasy
+        e0 = self.edges[var.edges[block_idx]]
+        steps: list[tuple[int, int, float]] = [(block_idx, e0.v if forward else e0.u, 0.0)]
         rng = range(block_idx + 1, len(var.edges)) if forward else range(block_idx - 1, -1, -1)
         for i in rng:
             e = self.edges[var.edges[i]]
-            node = e.v if forward else e.u
-            dist += e.length_m
+            steps.append((i, e.v if forward else e.u, e.length_m))
+        for i, node, step in steps:
+            dist += step
             for t in self.turnbacks_by_node.get(node, []):
                 if t.id not in found:
                     found[t.id] = {"id": t.id, "kind": t.kind, "name": t.name, "distance_to_block_m": round(dist),
@@ -312,6 +391,9 @@ class IncidentAnalyzer:
             parts.append(f"Objazd możliwy: {', '.join(with_detour)}.")
         if no_detour:
             parts.append(f"Brak objazdu, zawracanie: {', '.join(no_detour)}.")
+        shuttle_ok = sorted({r["ref"] for r in affected if r.get("shuttle", {}).get("possible")}, key=int)
+        if shuttle_ok:
+            parts.append(f"Wahadło po jednym torze możliwe: {', '.join(shuttle_ok)}.")
         trapped = [v["vehicle_code"] for v in vehicles if v["situation"] == "trapped_between"]
         appr = [v for v in vehicles if v["situation"] == "approaching"]
         if trapped:
