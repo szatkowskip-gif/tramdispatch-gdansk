@@ -55,8 +55,9 @@ pre { white-space: pre-wrap; word-break: break-word; font-size: 11.5px; backgrou
 .leaflet-popup-content { font-size: 12.5px; line-height: 1.35; }
 .count { font-weight: 400; text-transform: none; letter-spacing: 0; }
 
-button.primary { background: var(--accent); color: #fff; border: 0; }
-#panel button { font: inherit; border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+#panel button { font: inherit; border: 1px solid var(--line); background: #fff; color: var(--fg); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+#panel button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+#panel button.primary:disabled { background: #e3a1ab; border-color: #e3a1ab; }
 #panel button:disabled { opacity: .5; cursor: default; }
 .btns { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
 #inc-form label { display: block; margin: 6px 0; font-size: 12.5px; }

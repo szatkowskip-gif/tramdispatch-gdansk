@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -49,7 +49,17 @@ async def lifespan(app: FastAPI):
     _state["store"].close()
 
 
-app = FastAPI(title="Tramdispatch Gdańsk", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="Tramdispatch Gdańsk", version="0.4.0", lifespan=lifespan)
+
+
+@app.middleware("http")
+async def no_cache_frontend(request: Request, call_next):
+    """Pliki frontu (poza vendor/) zawsze świeże: po aktualizacji programu przeglądarka nie trzyma starego app.js."""
+    response = await call_next(request)
+    path = request.url.path
+    if not path.startswith("/api/") and not path.startswith("/vendor/"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 @app.get("/api/network")

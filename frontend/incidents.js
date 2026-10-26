@@ -53,7 +53,7 @@
   }
   function clearAll() {
     inc.selected.clear(); inc.blocked.clear(); inc.detour.clear(); inc.shuttle.clear(); inc.strategies = {}; inc.analysis = null; inc.active = null; inc.vehicleSit.clear();
-    $("msg-box").hidden = true; $("msg-fields").innerHTML = "";
+    $("msg-box").hidden = true; $("msg-fields").innerHTML = ""; $("inc-messages").textContent = "Komunikaty";
     layers.incident.clearLayers();
     $("inc-result").hidden = true; $("inc-result").innerHTML = "";
     $("inc-active").hidden = true;
@@ -231,14 +231,21 @@
     });
     $("msg-box").hidden = false;
   }
+  let generating = false;
   function generateMessages() {
-    if (!inc.active) return;
+    if (!inc.active || generating) return;
+    generating = true;
+    $("msg-regen").disabled = true;
     fetch(`/api/incidents/${inc.active.id}/messages`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
-      .then((r) => r.json()).then((d) => { inc.active.messages = d.messages; showMessages(d.messages); });
+      .then((r) => r.json()).then((d) => { inc.active.messages = d.messages; inc.active.messages_edited = false; showMessages(d.messages); })
+      .finally(() => { generating = false; $("msg-regen").disabled = false; });
   }
   $("inc-messages").onclick = () => {
     if (!inc.active) return;
-    if (inc.active.messages && inc.active.messages_edited) showMessages(inc.active.messages); else generateMessages();
+    const box = $("msg-box");
+    if (!box.hidden) { box.hidden = true; $("inc-messages").textContent = "Komunikaty"; return; }
+    $("inc-messages").textContent = "Ukryj komunikaty";
+    if (inc.active.messages && inc.active.messages.passenger_pl) showMessages(inc.active.messages); else generateMessages();
   };
   $("msg-regen").onclick = generateMessages;
   $("msg-save").onclick = () => {
@@ -283,6 +290,11 @@
   // odświeżanie sytuacji składów przy aktywnej awarii (co 15 s)
   setInterval(() => {
     if (!inc.active || inc.reporting || live.historyMinutes > 0) return;
-    fetch(`/api/incidents/${inc.active.id}`).then((r) => r.json()).then((full) => { inc.active = full; showAnalysis(full.analysis); });
+    fetch(`/api/incidents/${inc.active.id}`).then((r) => r.json()).then((full) => {
+      if (!inc.active || full.id !== inc.active.id) return;
+      full.messages = full.messages || inc.active.messages;
+      inc.active = full;
+      showAnalysis(full.analysis);
+    });
   }, 15000);
 })();

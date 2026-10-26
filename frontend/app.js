@@ -31,8 +31,9 @@
   });
   const $ = (id) => document.getElementById(id);
 
-  function show(obj) {
-    $("selected").textContent = JSON.stringify(obj, null, 1).replace(/[{}"]/g, "");
+  function show(obj, latlng) {
+    const html = Object.entries(obj).map(([k, v]) => `<b>${k.replace(/_/g, " ")}:</b> ${v}`).join("<br>");
+    L.popup({ offset: [0, -4] }).setLatLng(latlng || map.getCenter()).setContent(html).openOn(map);
   }
 
   function edgeStyle(p) {
@@ -69,18 +70,18 @@
         const layer = L.polyline(latlngs, edgeStyle(p)).addTo(layers.edges);
         layer.on("click", (ev) => {
           if (window.TD && TD.onEdgeClick && TD.onEdgeClick(p, ev)) return;
-          show({ typ: "tor", id: p.id, dlugosc_m: p.length_m, linie: p.lines.join(", ") || "brak", service: p.service || "-", osm_way: p.way });
+          show({ typ: "tor", id: p.id, dlugosc_m: p.length_m, linie: p.lines.join(", ") || "brak", service: p.service || "-", osm_way: p.way }, ev.latlng);
         });
         state.edgeLayers.push({ layer, props: p });
         state.edgeById.set(p.id, { layer, props: p });
         (p.lines || []).forEach((l) => lineSet.add(l));
       } else if (p.kind === "switch") {
         const m = L.circleMarker([f.geometry.coordinates[1], f.geometry.coordinates[0]], { radius: 3, color: "#fff", weight: 1, fillColor: p.in_loop ? "#1a7f37" : "#c8102e", fillOpacity: 1 }).addTo(layers.switches);
-        m.on("click", () => show({ typ: "zwrotnica", osm_node: p.id, ref: p.ref || "-", w_petli: p.in_loop ? "tak" : "nie" }));
+        m.on("click", (ev) => show({ typ: "zwrotnica", osm_node: p.id, ref: p.ref || "-", w_petli: p.in_loop ? "tak" : "nie" }, ev.latlng));
       } else if (p.kind === "tram_stop") {
         const m = L.circleMarker([f.geometry.coordinates[1], f.geometry.coordinates[0]], { radius: 4, color: "#1d1d1b", weight: 1.5, fillColor: "#fff", fillOpacity: 1 }).addTo(layers.stops);
         m.bindTooltip(p.name || "(bez nazwy)", { direction: "top", offset: [0, -4] });
-        m.on("click", () => show({ typ: "przystanek", nazwa: p.name, osm_node: p.id }));
+        m.on("click", (ev) => show({ typ: "przystanek", nazwa: p.name, osm_node: p.id }, ev.latlng));
         state.stopById.set(p.id, { marker: m, props: p });
       } else if (p.kind === "turnback") {
         const cls = tbClass(p);
@@ -88,7 +89,7 @@
         const m = L.circleMarker([f.geometry.coordinates[1], f.geometry.coordinates[0]], { radius: 8, color: "#fff", weight: 2, fillColor: color, fillOpacity: 1 }).addTo(layers.turnbacks);
         m.bindTooltip(p.name, { permanent: map.getZoom() >= LABEL_ZOOM, direction: "right", offset: [8, 0], className: "tb-label" });
         state.tbMarkers.push({ marker: m, name: p.name });
-        m.on("click", () => show({ typ: "punkt zawracania", rodzaj: tbLabel(cls), nazwa: p.name, tylko_dwukierunkowe: p.for_bidirectional_only ? "tak" : "nie", zrodlo: p.source, wezly: (p.nodes || []).length }));
+        m.on("click", (ev) => show({ typ: "punkt zawracania", rodzaj: tbLabel(cls), nazwa: p.name, tylko_dwukierunkowe: p.for_bidirectional_only ? "tak" : "nie", zrodlo: p.source, wezly: (p.nodes || []).length }, ev.latlng));
       }
     });
     // przyciski linii
@@ -114,7 +115,7 @@
       });
     }
     // raport
-    $("report").textContent = reportText(data.report);
+    console.info("Raport jakości grafu:\n" + reportText(data.report));
     layers.switches.eachLayer((l) => l.bringToFront && l.bringToFront());
   }
 
@@ -148,7 +149,7 @@
   });
   $("l-lines").addEventListener("change", (e) => { state.colorByLine = e.target.checked; restyleEdges(); });
 
-  fetch("/api/network").then((r) => r.json()).then(render).catch((err) => { $("report").textContent = "Błąd ładowania sieci: " + err; });
+  fetch("/api/network").then((r) => r.json()).then(render).catch((err) => { $("status").className = "status bad"; $("status").textContent = "Błąd ładowania sieci torów: " + err; });
 
   // ------------------------------------------------------------ tramwaje na żywo
   const live = { markers: new Map(), selected: null, historyMinutes: 0, timer: null, lastSnapshot: null };
