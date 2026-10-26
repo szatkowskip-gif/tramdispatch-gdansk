@@ -13,3 +13,5 @@ data/gtfs/shapes.txt
 data/gtfs/trips.txt
 data/network.geojson
 *.egg-info/
+*.db-shm
+*.db-wal
