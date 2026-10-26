@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import csv
 import io
+import os
 import threading
 import time
 import webbrowser
@@ -236,7 +237,8 @@ app.mount("/", StaticFiles(directory=Path(ROOT / "frontend"), html=True), name="
 def main() -> None:
     cfg = load_config()["server"]
     url = f"http://{cfg['host']}:{cfg['port']}"
-    threading.Timer(1.5, lambda: webbrowser.open(url)).start()
+    if not os.environ.get("TRAMDISPATCH_NO_BROWSER"):
+        threading.Timer(1.5, lambda: webbrowser.open(url)).start()
     uvicorn.run(app, host=cfg["host"], port=cfg["port"], log_level="info")
 
 

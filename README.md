@@ -53,7 +53,7 @@ cd tramdispatch-gdansk
 
 Bez gita: zielony przycisk „Code” → „Download ZIP”, rozpakuj, uruchom skrypt z folderu.
 
-Pierwsze uruchomienie instaluje zależności (ok. minuty), kolejne startują od razu. Serwer działa na http://127.0.0.1:8766 i otwiera przeglądarkę; zatrzymanie: Ctrl+C. Internet jest potrzebny do kafelków mapy i feedu pozycji ZTM; bez niego działa sama mapa torów. Dostęp tylko z tego komputera (nasłuch na 127.0.0.1).
+Pierwsze uruchomienie instaluje zależności (ok. minuty), kolejne startują od razu. Serwer działa na http://127.0.0.1:8790 i otwiera przeglądarkę; zatrzymanie: Ctrl+C. Internet jest potrzebny do kafelków mapy i feedu pozycji ZTM; bez niego działa sama mapa torów. Dostęp tylko z tego komputera (nasłuch na 127.0.0.1).
 
 Dane: © OpenStreetMap contributors (ODbL), otwarte dane ZTM Gdańsk (ckan.multimediagdansk.pl).
 
@@ -86,3 +86,11 @@ Mapa pokazuje to, co program "wie" o torach. Do sprawdzenia:
 - `scripts/` pobieranie danych i budowa grafu
 - `tests/` testy jednostkowe i scenariusze realnych awarii
 - `config.toml` adresy feedów ZTM i parametry algorytmów
+
+## Wdrożenie u Piotra (Mac + Cloudflare Tunnel)
+
+- Usługa launchd `pl.dyspo.tramdispatch` (plik w `~/Library/LaunchAgents/`) uruchamia aplikację na porcie 8790 przy starcie systemu i restartuje po awarii; log w `logs/app.log`.
+- Tunel `laba-mailer` (`~/.cloudflared/config.yml`) kieruje `dyspo.piotrszatkowski.com` na `http://127.0.0.1:8790`.
+- Dostęp chroniony przez Cloudflare Access (logowanie kodem na e-mail).
+
+Restart aplikacji po zmianie kodu: `launchctl kickstart -k gui/$(id -u)/pl.dyspo.tramdispatch`.

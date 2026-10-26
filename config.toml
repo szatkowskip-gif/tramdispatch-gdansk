@@ -27,4 +27,4 @@ max_single_track_m = 2500 # powyżej tej długości program nie proponuje wahad�
 
 [server]
 host = "127.0.0.1"
-port = 8766
+port = 8790

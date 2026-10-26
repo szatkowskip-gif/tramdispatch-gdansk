@@ -15,3 +15,4 @@ data/network.geojson
 *.egg-info/
 *.db-shm
 *.db-wal
+logs/
