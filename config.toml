@@ -9,14 +9,15 @@ history_retention_h = 24
 [osm]
 overpass_url = "https://overpass-api.de/api/interpreter"
 user_agent = "tramdispatch-gdansk/0.1"
+overpass_fallbacks = ["https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter"]
 
 [routing]
 max_detour_extra_m = 4000
 turnback_search_radius_m = 5000
 crossover_max_length_m = 80
-loop_max_length_m = 600
+loop_max_length_m = 1600
 position_match_radius_m = 60
 
 [server]
 host = "127.0.0.1"
-port = 8765
+port = 8766

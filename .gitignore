@@ -8,3 +8,8 @@ data/gtfs/*.zip
 data/tiles/
 .DS_Store
 .env
+data/gtfs/stop_times.txt
+data/gtfs/shapes.txt
+data/gtfs/trips.txt
+data/network.geojson
+*.egg-info/

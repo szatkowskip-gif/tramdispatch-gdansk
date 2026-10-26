@@ -1,0 +1,35 @@
+:root {
+  --bg: #f7f7f5;
+  --fg: #1d1d1b;
+  --muted: #6b6b66;
+  --line: #d9d9d4;
+  --accent: #c8102e;
+  --panel-w: 360px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--fg); background: var(--bg); }
+body { display: flex; flex-direction: row; }
+#map { flex: 1 1 auto; min-width: 0; height: 100%; background: #e8e8e4; }
+#panel { flex: 0 0 var(--panel-w); width: var(--panel-w); height: 100%; overflow-y: auto; background: #fff; border-left: 1px solid var(--line); padding: 14px 16px 24px; }
+#panel header h1 { margin: 0; font-size: 18px; }
+#panel header .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+#panel section { margin-top: 18px; }
+#panel h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 6px; }
+#panel label { display: block; margin: 2px 0; }
+pre { white-space: pre-wrap; word-break: break-word; font-size: 11.5px; background: #f3f3f0; border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin: 0; max-height: 260px; overflow: auto; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 3px 10px; cursor: pointer; font: inherit; }
+.chips button.active { background: var(--fg); color: #fff; border-color: var(--fg); }
+.legend span { display: block; margin: 3px 0; }
+.legend i.tb { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: -2px; border: 2px solid #fff; box-shadow: 0 0 0 1px #0003; }
+.tb.loop { background: #1a7f37; }
+.tb.ring { background: #b58900; }
+.tb.stub { background: #6f42c1; }
+.tb.crossover { background: #0969da; }
+.leaflet-container { font: inherit; }
+.tb-label { background: #fff; border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; font-size: 11px; white-space: nowrap; box-shadow: 0 1px 2px #0002; }
+@media (max-width: 800px) {
+  body { flex-direction: column; }
+  #map { flex: 0 0 55%; height: 55%; }
+  #panel { flex: 1 1 auto; width: auto; height: auto; border-left: 0; border-top: 1px solid var(--line); }
+}

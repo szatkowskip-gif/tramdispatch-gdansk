@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tramdispatch Gdańsk</title>
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="map"></div>
+<aside id="panel">
+  <header>
+    <h1>Tramdispatch Gdańsk</h1>
+    <div class="sub">Etap 1: graf torów z OSM. Narzędzie doradcze, nie sterujące.</div>
+  </header>
+
+  <section>
+    <h2>Warstwy</h2>
+    <label><input type="checkbox" id="l-edges" checked> Tory</label>
+    <label><input type="checkbox" id="l-switches" checked> Zwrotnice</label>
+    <label><input type="checkbox" id="l-stops" checked> Przystanki</label>
+    <label><input type="checkbox" id="l-turnbacks" checked> Punkty zawracania</label>
+    <label><input type="checkbox" id="l-lines"> Koloruj tory wg linii</label>
+  </section>
+
+  <section>
+    <h2>Linia</h2>
+    <div id="line-buttons" class="chips"></div>
+  </section>
+
+  <section>
+    <h2>Legenda punktów zawracania</h2>
+    <div class="legend">
+      <span><i class="tb loop"></i> pętla końcowa</span>
+      <span><i class="tb ring"></i> pierścień/trójkąt do weryfikacji</span>
+      <span><i class="tb stub"></i> końcówka bez pętli (tylko dwukierunkowe)</span>
+      <span><i class="tb crossover"></i> przejazd międzytorowy (tylko dwukierunkowe)</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Raport jakości grafu</h2>
+    <pre id="report">ładowanie…</pre>
+  </section>
+
+  <section>
+    <h2>Zaznaczony element</h2>
+    <pre id="selected">kliknij tor, zwrotnicę, przystanek lub punkt zawracania</pre>
+  </section>
+</aside>
+<script src="vendor/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -8,15 +8,36 @@ Działa wyłącznie na publicznych danych: OpenStreetMap i otwarte dane ZTM Gda�
 
 ## Stan
 
-Szkielet repozytorium. Plan i specyfikacja w [PLAN.md](PLAN.md). Implementacja wg sekcji 9 planu.
+Etap 1 z [PLAN.md](PLAN.md) gotowy: dane OSM i GTFS pobrane, graf torów ze zwrotnicami i punktami zawracania, mapa do weryfikacji przez dyspozytora. Raport jakości grafu w [data/graph_report.md](data/graph_report.md).
 
-## Uruchomienie (docelowo)
+## Uruchomienie
 
 ```bash
 ./run.sh
 ```
 
-Serwer startuje na http://127.0.0.1:8765. Wymaga Pythona 3.12+.
+Serwer startuje na http://127.0.0.1:8766 i otwiera przeglądarkę. Wymaga Pythona 3.12+ i dostępu do internetu tylko dla kafelków mapy.
+
+Odświeżenie danych (rzadko, dane są w repo):
+
+```bash
+.venv/bin/python scripts/fetch_osm.py
+.venv/bin/python scripts/fetch_gtfs.py
+.venv/bin/python scripts/build_graph.py
+```
+
+Testy: `.venv/bin/python -m pytest`.
+
+## Weryfikacja z dyspozytorem (po etapie 1)
+
+Mapa pokazuje to, co program "wie" o torach. Do sprawdzenia:
+
+1. Zielone punkty: pętle końcowe wykryte automatycznie. Czy wszystkie istnieją i czy czegoś brakuje.
+2. Fioletowe: przystanki końcowe, przy których program nie znalazł pętli (zakłada zawracanie tylko składów dwukierunkowych). Jeśli pętla jest, trzeba ją dopisać w `data/overrides.json`.
+3. Niebieskie: przejazdy międzytorowe wykryte heurystycznie. Które są używane do zawracania w praktyce.
+4. Żółte: krótkie pierścienie i trójkąty w centrum. Czy służą do zawracania.
+5. Pomarańczowe tory: odcinki poza trasami linii (łączniki). Czy są przejezdne.
+6. Zakresy numerów taborowych w `data/fleet.json`.
 
 ## Struktura
 
