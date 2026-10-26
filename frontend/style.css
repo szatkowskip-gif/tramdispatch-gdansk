@@ -54,3 +54,33 @@ pre { white-space: pre-wrap; word-break: break-word; font-size: 11.5px; backgrou
 .tram-icon.selected { box-shadow: 0 0 0 3px #1d1d1b; }
 .leaflet-popup-content { font-size: 12.5px; line-height: 1.35; }
 .count { font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+button.primary { background: var(--accent); color: #fff; border: 0; }
+#panel button { font: inherit; border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+#panel button:disabled { opacity: .5; cursor: default; }
+.btns { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+#inc-form label { display: block; margin: 6px 0; font-size: 12.5px; }
+#inc-form input[type=text], #inc-form select { width: 100%; font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; margin-top: 2px; }
+.active-box { background: #fde8e8; border: 1px solid #f5b5b5; border-radius: 6px; padding: 8px 10px; }
+.summary { background: #fff7e6; border: 1px solid #f3d9a4; border-radius: 6px; padding: 8px 10px; margin-top: 8px; font-size: 12.5px; }
+.card { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin-top: 8px; font-size: 12.5px; }
+.card h3 { margin: 0 0 4px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.card .pill { display: inline-block; color: #fff; border-radius: 4px; padding: 0 6px; font-weight: 700; }
+.card .ok { color: #14532d; } .card .no { color: #7f1d1d; }
+.card ul { margin: 4px 0 0; padding-left: 18px; }
+.card .muted { color: var(--muted); }
+.veh { display: grid; grid-template-columns: 26px 44px 1fr auto; gap: 6px; align-items: center; padding: 2px 0; font-size: 12px; }
+.veh .sit { font-size: 11px; padding: 0 5px; border-radius: 3px; color: #fff; }
+.sit-trapped_between { background: #dc2626; } .sit-approaching { background: #ea580c; } .sit-beyond { background: #6b7280; } .sit-on_block { background: #7c3aed; }
+.tram-icon.sit-approaching { box-shadow: 0 0 0 3px #ea580c; }
+.tram-icon.sit-trapped_between { box-shadow: 0 0 0 3px #dc2626; animation: pulse 1.2s infinite; }
+.tram-icon.sit-on_block { box-shadow: 0 0 0 3px #7c3aed; }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 3px #dc2626; } 50% { box-shadow: 0 0 0 7px #dc262655; } }
+.log div { padding: 4px 0; border-bottom: 1px solid #eee; font-size: 12px; cursor: pointer; }
+.log div:hover { background: #f3f3f0; }
+.log .st { font-size: 11px; padding: 0 5px; border-radius: 3px; color: #fff; background: #6b7280; margin-right: 4px; }
+.log .st.active { background: #dc2626; }
+.tb-big { background: #fff; border: 2px solid #1a7f37; border-radius: 6px; padding: 2px 6px; font-size: 12px; font-weight: 700; white-space: nowrap; box-shadow: 0 1px 3px #0004; }
+.tb-big.bi { border-color: #0969da; }
+.stop-x { color: #dc2626; font-weight: 900; font-size: 16px; line-height: 16px; text-align: center; text-shadow: 0 0 2px #fff; }
+body.reporting #map { cursor: crosshair; }

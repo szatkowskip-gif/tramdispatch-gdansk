@@ -21,7 +21,7 @@
     turnbacks: L.layerGroup().addTo(map),
   };
   const LABEL_ZOOM = 14;
-  const state = { data: null, selectedLines: new Set(), colorByLine: false, edgeLayers: [], tbMarkers: [] };
+  const state = { data: null, selectedLines: new Set(), colorByLine: false, edgeLayers: [], edgeById: new Map(), tbMarkers: [], stopById: new Map() };
   map.on("zoomend", () => {
     const permanent = map.getZoom() >= LABEL_ZOOM;
     state.tbMarkers.forEach(({ marker, name }) => {
@@ -36,6 +36,7 @@
   }
 
   function edgeStyle(p) {
+    if (window.TD && TD.edgeOverride) { const o = TD.edgeOverride(p.id); if (o) return o; }
     const lines = p.lines || [];
     if (state.selectedLines.size) {
       const hit = lines.find((l) => state.selectedLines.has(l));
@@ -66,8 +67,12 @@
       if (p.kind === "edge") {
         const latlngs = f.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
         const layer = L.polyline(latlngs, edgeStyle(p)).addTo(layers.edges);
-        layer.on("click", () => show({ typ: "tor", id: p.id, dlugosc_m: p.length_m, linie: p.lines.join(", ") || "brak", service: p.service || "-", osm_way: p.way }));
+        layer.on("click", (ev) => {
+          if (window.TD && TD.onEdgeClick && TD.onEdgeClick(p, ev)) return;
+          show({ typ: "tor", id: p.id, dlugosc_m: p.length_m, linie: p.lines.join(", ") || "brak", service: p.service || "-", osm_way: p.way });
+        });
         state.edgeLayers.push({ layer, props: p });
+        state.edgeById.set(p.id, { layer, props: p });
         (p.lines || []).forEach((l) => lineSet.add(l));
       } else if (p.kind === "switch") {
         const m = L.circleMarker([f.geometry.coordinates[1], f.geometry.coordinates[0]], { radius: 3, color: "#fff", weight: 1, fillColor: p.in_loop ? "#1a7f37" : "#c8102e", fillOpacity: 1 }).addTo(layers.switches);
@@ -76,6 +81,7 @@
         const m = L.circleMarker([f.geometry.coordinates[1], f.geometry.coordinates[0]], { radius: 4, color: "#1d1d1b", weight: 1.5, fillColor: "#fff", fillOpacity: 1 }).addTo(layers.stops);
         m.bindTooltip(p.name || "(bez nazwy)", { direction: "top", offset: [0, -4] });
         m.on("click", () => show({ typ: "przystanek", nazwa: p.name, osm_node: p.id }));
+        state.stopById.set(p.id, { marker: m, props: p });
       } else if (p.kind === "turnback") {
         const cls = tbClass(p);
         const color = TB_COLORS[cls] || "#444";
@@ -167,7 +173,8 @@
   function tramIcon(t) {
     const stale = t.age_s > 120;
     const dir = typeof t.direction === "number" ? t.direction : 0;
-    const html = `<div class="tram-icon${stale ? " stale" : ""}${live.selected === t.vehicle_code ? " selected" : ""}" style="background:${delayColor(t)}">${t.line}<span class="arrow" style="transform:rotate(${dir}deg)"></span></div>`;
+    const sit = (window.TD && TD.vehicleSituation) ? TD.vehicleSituation(t.vehicle_code) : "";
+    const html = `<div class="tram-icon${stale ? " stale" : ""}${live.selected === t.vehicle_code ? " selected" : ""}${sit ? " sit-" + sit : ""}" style="background:${delayColor(t)}">${t.line}<span class="arrow" style="transform:rotate(${dir}deg)"></span></div>`;
     return L.divIcon({ html, className: "", iconSize: [24, 24], iconAnchor: [12, 12] });
   }
 
@@ -264,4 +271,6 @@
       });
     }, 150);
   });
+
+  window.TD = Object.assign(window.TD || {}, { map, layers, state, live, $, restyleEdges, renderTrams, LINE_COLORS, fmtDelay });
 })();

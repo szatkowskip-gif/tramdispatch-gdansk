@@ -8,13 +8,22 @@ Działa wyłącznie na publicznych danych: OpenStreetMap i otwarte dane ZTM Gda�
 
 ## Stan
 
-Etapy 1 i 2 z [PLAN.md](PLAN.md) gotowe:
+Etapy 1, 2 i 3 z [PLAN.md](PLAN.md) gotowe:
 
 - graf torów ze zwrotnicami i punktami zawracania, mapa do weryfikacji przez dyspozytora, raport jakości w [data/graph_report.md](data/graph_report.md);
 - linie i ich warianty tras z relacji OSM, tabela taboru (`data/fleet.json`);
-- tramwaje na żywo z otwartego feedu ZTM (co 15 s), kolor wg opóźnienia, popup z numerem taborowym i typem składu, ślad z ostatniej godziny po kliknięciu, suwak cofający mapę do 60 minut wstecz. Historia pozycji w lokalnej bazie SQLite (`data/tramdispatch.db`, 24 h retencji).
+- tramwaje na żywo z otwartego feedu ZTM (co 15 s), kolor wg opóźnienia, popup z numerem taborowym i typem składu, ślad z ostatniej godziny po kliknięciu, suwak cofający mapę do 60 minut wstecz, filtr po liniach. Historia pozycji w lokalnej bazie SQLite (`data/tramdispatch.db`, 24 h retencji);
+- zgłaszanie awarii: zaznaczenie odcinków toru na mapie (z automatycznym dodaniem toru równoległego), analiza: dotknięte linie i warianty, objazd po pozostałych torach jeśli istnieje, punkty zawracania po obu stronach blokady osobno dla taboru jedno- i dwukierunkowego, przystanki bez obsługi, sytuacja każdego tramwaju z feedu (jedzie na blokadę / na blokadzie / za blokadą / bez możliwości zawrócenia). Dziennik awarii z zamykaniem.
 
-Następny etap: zgłaszanie awarii, objazdy i zawracanie (sekcja 9 planu, etap 3).
+Następny etap: komunikaty z szablonów i eksport dziennika (sekcja 9 planu, etap 4).
+
+## Jak zgłosić awarię
+
+1. „Zgłoś awarię”, potem klikaj odcinki torów na mapie (czerwone). „Oba kierunki” dokłada tor równoległy.
+2. Wpisz miejsce, przyczynę i przewidywany czas. „Analizuj” pokazuje wynik bez zapisu.
+3. „Zapisz awarię” zapisuje ją w dzienniku; sytuacja składów odświeża się co 15 s. „Zakończ awarię” zamyka wpis.
+
+Program proponuje, dyspozytor decyduje. Punkty zawracania oznaczone „do weryfikacji” pochodzą z heurystyki i wymagają potwierdzenia w `data/overrides.json`.
 
 ## Uruchomienie
 

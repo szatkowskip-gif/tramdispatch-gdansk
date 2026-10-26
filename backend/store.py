@@ -1,6 +1,7 @@
 """SQLite: historia pozycji tramwajów (etap 2), awarie i decyzje (etap 3+)."""
 from __future__ import annotations
 
+import json
 import sqlite3
 import threading
 from pathlib import Path
@@ -22,6 +23,12 @@ CREATE TABLE IF NOT EXISTS positions (
   PRIMARY KEY (vehicle_code, ts)
 );
 CREATE INDEX IF NOT EXISTS positions_ts ON positions(ts);
+CREATE TABLE IF NOT EXISTS incidents (
+  id TEXT PRIMARY KEY,
+  created_at INTEGER NOT NULL,
+  status TEXT NOT NULL,           -- active | resolved
+  json TEXT NOT NULL
+);
 """
 
 
@@ -74,6 +81,28 @@ class Store:
             cur = self._conn.execute("DELETE FROM positions WHERE ts<?", (ts,))
             self._conn.commit()
             return cur.rowcount
+
+    # ---------------------------------------------------------------- awarie
+    def save_incident(self, inc: dict[str, Any]) -> None:
+        with self._lock:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO incidents(id, created_at, status, json) VALUES (?, ?, ?, ?)",
+                (inc["id"], inc["created_at"], inc["status"], json.dumps(inc, ensure_ascii=False)),
+            )
+            self._conn.commit()
+
+    def get_incident(self, inc_id: str) -> dict[str, Any] | None:
+        with self._lock:
+            row = self._conn.execute("SELECT json FROM incidents WHERE id=?", (inc_id,)).fetchone()
+            return json.loads(row[0]) if row else None
+
+    def list_incidents(self, status: str | None = None) -> list[dict[str, Any]]:
+        with self._lock:
+            if status:
+                cur = self._conn.execute("SELECT json FROM incidents WHERE status=? ORDER BY created_at DESC", (status,))
+            else:
+                cur = self._conn.execute("SELECT json FROM incidents ORDER BY created_at DESC")
+            return [json.loads(r[0]) for r in cur.fetchall()]
 
     def close(self) -> None:
         with self._lock:

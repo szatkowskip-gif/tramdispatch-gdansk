@@ -36,6 +36,49 @@
     <div class="hint">Przesuń, żeby cofnąć mapę o N minut. Kliknięcie tramwaju rysuje jego ślad z ostatniej godziny.</div>
   </section>
 
+  <section id="incident-section">
+    <h2>Awaria</h2>
+    <div id="inc-idle">
+      <button id="inc-start" class="primary">Zgłoś awarię</button>
+      <div class="hint">Potem klikaj odcinki torów na mapie, żeby zaznaczyć blokadę.</div>
+    </div>
+    <div id="inc-form" hidden>
+      <div class="hint" id="inc-count">Zaznaczono 0 odcinków. Klikaj tory na mapie.</div>
+      <label><input type="checkbox" id="inc-both" checked> Oba kierunki (zablokuj też tor równoległy)</label>
+      <label>Miejsce <input type="text" id="inc-location" placeholder="np. al. Grunwaldzka przy Galerii Bałtyckiej"></label>
+      <label>Przyczyna
+        <select id="inc-cause">
+          <option value="awaria sieci trakcyjnej">awaria sieci trakcyjnej</option>
+          <option value="awaria składu">awaria składu</option>
+          <option value="kolizja">kolizja</option>
+          <option value="uszkodzenie toru">uszkodzenie toru / zwrotnicy</option>
+          <option value="zdarzenie z pieszym">zdarzenie z pieszym</option>
+          <option value="brak zasilania">brak zasilania</option>
+          <option value="inne">inne</option>
+        </select>
+      </label>
+      <label>Przewidywany czas <input type="text" id="inc-until" placeholder="np. do odwołania / ok. 60 min"></label>
+      <div class="btns">
+        <button id="inc-analyze" class="primary">Analizuj</button>
+        <button id="inc-save" disabled>Zapisz awarię</button>
+        <button id="inc-cancel">Anuluj</button>
+      </div>
+    </div>
+    <div id="inc-active" hidden>
+      <div class="active-box">
+        <div><b id="inc-active-title"></b></div>
+        <div id="inc-active-meta" class="hint"></div>
+        <div class="btns"><button id="inc-resolve">Zakończ awarię</button><button id="inc-close">Ukryj</button></div>
+      </div>
+    </div>
+    <div id="inc-result" hidden></div>
+  </section>
+
+  <section>
+    <h2>Dziennik awarii</h2>
+    <div id="inc-log" class="log">brak</div>
+  </section>
+
   <section>
     <h2>Warstwy</h2>
     <label><input type="checkbox" id="l-edges" checked> Tory</label>
@@ -72,5 +115,6 @@
 </aside>
 <script src="vendor/leaflet.js"></script>
 <script src="app.js"></script>
+<script src="incidents.js"></script>
 </body>
 </html>

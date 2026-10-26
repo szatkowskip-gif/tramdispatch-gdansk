@@ -15,7 +15,10 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from pydantic import BaseModel
+
 from backend.graph import ROOT, load_config, load_network
+from backend.incidents import IncidentAnalyzer
 from backend.lines import Fleet, Lines
 from backend.live import LivePoller
 from backend.store import Store
@@ -30,7 +33,8 @@ def build_state() -> None:
     fleet = Fleet()
     store = Store()
     poller = LivePoller(cfg["ztm"]["gps_positions"], cfg["ztm"]["poll_interval_s"], cfg["ztm"]["history_retention_h"], store, fleet, lines)
-    _state.update(cfg=cfg, net=net, geojson=net.to_geojson(), lines=lines, fleet=fleet, store=store, poller=poller)
+    _state.update(cfg=cfg, net=net, geojson=net.to_geojson(), lines=lines, fleet=fleet, store=store, poller=poller,
+                  analyzer=IncidentAnalyzer(net, lines, cfg))
 
 
 @asynccontextmanager
@@ -56,6 +60,7 @@ def api_network_reload():
     net = load_network()
     _state.update(net=net, geojson=net.to_geojson(), lines=Lines(net))
     _state["poller"].lines = _state["lines"]
+    _state["analyzer"] = IncidentAnalyzer(net, _state["lines"], _state["cfg"])
     return {"ok": True, "report": net.report.to_dict()}
 
 
@@ -83,6 +88,89 @@ def api_history(vehicle: str | None = None, minutes: int = Query(60, ge=1, le=14
         return {"last_update": at, "trams": trams}
     lo, hi = store.bounds()
     return {"from": lo, "to": hi}
+
+
+# ------------------------------------------------------------------- awarie
+class IncidentIn(BaseModel):
+    blocked_edges: list[str]
+    both_directions: bool = True
+    location_text: str = ""
+    cause: str = "inne"
+    expected_until: str | None = None
+    note: str = ""
+
+
+class IncidentPatch(BaseModel):
+    status: str | None = None
+    blocked_edges: list[str] | None = None
+    both_directions: bool | None = None
+    location_text: str | None = None
+    cause: str | None = None
+    expected_until: str | None = None
+    note: str | None = None
+    decision: dict | None = None
+
+
+def _analyze(blocked: list[str], both: bool) -> dict:
+    return _state["analyzer"].analyze(blocked, both, _state["poller"].snapshot["trams"])
+
+
+@app.post("/api/incidents/preview")
+def api_incident_preview(body: IncidentIn):
+    """Analiza bez zapisu: do podglądu przed zgłoszeniem."""
+    return _analyze(body.blocked_edges, body.both_directions)
+
+
+@app.post("/api/incidents")
+def api_incident_create(body: IncidentIn):
+    now = int(time.time())
+    inc = {
+        "id": time.strftime("%Y%m%d-%H%M%S", time.localtime(now)),
+        "created_at": now,
+        "status": "active",
+        "resolved_at": None,
+        "blocked_edges": body.blocked_edges,
+        "both_directions": body.both_directions,
+        "location_text": body.location_text,
+        "cause": body.cause,
+        "expected_until": body.expected_until,
+        "note": body.note,
+        "decision": {},
+        "analysis": _analyze(body.blocked_edges, body.both_directions),
+    }
+    _state["store"].save_incident(inc)
+    return inc
+
+
+@app.get("/api/incidents")
+def api_incident_list(status: str | None = None):
+    return {"incidents": _state["store"].list_incidents(status)}
+
+
+@app.get("/api/incidents/{inc_id}")
+def api_incident_get(inc_id: str, refresh: bool = True):
+    inc = _state["store"].get_incident(inc_id)
+    if not inc:
+        raise HTTPException(404, "nie ma takiej awarii")
+    if refresh and inc["status"] == "active":
+        inc["analysis"] = _analyze(inc["blocked_edges"], inc["both_directions"])
+    return inc
+
+
+@app.patch("/api/incidents/{inc_id}")
+def api_incident_patch(inc_id: str, body: IncidentPatch):
+    inc = _state["store"].get_incident(inc_id)
+    if not inc:
+        raise HTTPException(404, "nie ma takiej awarii")
+    changes = body.model_dump(exclude_none=True)
+    reanalyze = any(k in changes for k in ("blocked_edges", "both_directions"))
+    inc.update(changes)
+    if changes.get("status") == "resolved" and not inc.get("resolved_at"):
+        inc["resolved_at"] = int(time.time())
+    if reanalyze:
+        inc["analysis"] = _analyze(inc["blocked_edges"], inc["both_directions"])
+    _state["store"].save_incident(inc)
+    return inc
 
 
 @app.get("/api/health")

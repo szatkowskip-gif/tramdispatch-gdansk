@@ -260,8 +260,6 @@ class TramNetwork:
                 except (nx.NetworkXNoPath, KeyError):
                     continue
                 cyc = set(path)
-                if len(cyc) < 3:
-                    continue
                 for s in found:
                     if cyc & s:
                         s |= cyc
