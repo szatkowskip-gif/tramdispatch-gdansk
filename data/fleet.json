@@ -1,0 +1,9 @@
+{
+  "_comment": "Zakresy numerów taborowych GAiT. PRZYBLIŻONE, do potwierdzenia przez dyspozytora.",
+  "types": [
+    {"from": 1001, "to": 1035, "type": "Pesa Swing 120NaG / Bombardier NGT6", "bidirectional": false},
+    {"from": 1036, "to": 1043, "type": "Pesa Swing 120NaG (2. seria)", "bidirectional": false},
+    {"from": 1051, "to": 1085, "type": "Pesa Jazz Duo 128NG", "bidirectional": true},
+    {"from": 1101, "to": 1186, "type": "Düwag N8C / N8C-NF", "bidirectional": true}
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "_comment": "Ręczne poprawki grafu torów. Każdy wpis ma pole reason od dyspozytora.",
+  "add_edges": [],
+  "remove_edges": [],
+  "turnbacks": [],
+  "notes": []
+}
