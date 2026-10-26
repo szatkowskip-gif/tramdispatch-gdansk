@@ -84,6 +84,7 @@
         if (restored) {
           inc.active = full; $("inc-active").hidden = false;
           $("inc-active-title").textContent = `Zakończona ${full.id}`; $("inc-active-meta").textContent = "Komunikat o przywróceniu ruchu do skopiowania:";
+          $("inc-messages").hidden = true; $("inc-resolve").hidden = true; $("msg-regen").hidden = true; $("msg-save").hidden = true;
           showMessages({ restored_pl: restored.restored_pl, restored_en: restored.restored_en });
         }
       });
@@ -104,6 +105,8 @@
 
   function setActive(saved) {
     inc.active = saved;
+    const resolved = saved.status === "resolved";
+    $("inc-messages").hidden = false; $("inc-resolve").hidden = resolved; $("msg-regen").hidden = resolved; $("msg-save").hidden = resolved;
     inc.selected = new Set(saved.blocked_edges);
     inc.strategies = (saved.decision && saved.decision.lines) || {};
     $("inc-active").hidden = false;
@@ -220,7 +223,7 @@
   function showMessages(messages) {
     const box = $("msg-fields");
     box.innerHTML = "";
-    Object.keys(MSG_LABEL).forEach((k) => {
+    Object.keys(MSG_LABEL).filter((k) => k in messages).forEach((k) => {
       const lab = document.createElement("label");
       lab.innerHTML = `${MSG_LABEL[k]} <button class="copy" data-key="${k}">Kopiuj</button>`;
       const ta = document.createElement("textarea"); ta.dataset.key = k; ta.value = messages[k] || "";

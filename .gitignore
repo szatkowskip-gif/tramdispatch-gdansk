@@ -16,3 +16,5 @@ data/network.geojson
 *.db-shm
 *.db-wal
 logs/
+docs/instrukcja/_jpg/
+docs/instrukcja/img/
